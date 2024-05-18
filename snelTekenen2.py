@@ -3,6 +3,7 @@ import turtle
 import random
 import math
 import itertools
+from scipy.special import binom as binomiaal # Om binomiaalcoëfficiënten te berekenen, heeft python nog een extra library nodig
 window = turtle.Screen()
 pen = turtle.Turtle()
 pen.speed("fastest")
@@ -10,12 +11,12 @@ pen.pensize(2)
 pen.up()
 window.tracer(0)
 # VARIABELEN
-penDikte = 1    # pendikte in pixels
-lijnDikte = 3
+penDikte = 2    # pendikte in pixels
+lijnDikte = 6
 aantalRoosters = None
-zijde = 10      # aantal pixels in zijde vierkant
-m = 5           # x-as van het Delannoy getal
-n = 5           # y-as van het Delannoy getal
+zijde = 50      # aantal pixels in zijde vierkant
+m = 4           # x-as van het Delannoy getal
+n = 4           # y-as van het Delannoy getal
 originx = -300 # x-coordinaat om te beginnen met tekenen
 originy = 300  # y-coordinaat om te beginnen met tekenen
 lijn1 = [45,45,45,45,45]      # maakt een list met stappen voor een lijn: 0 is horizontaal, 45 is diagonaal en 90 is verticaal
@@ -51,101 +52,6 @@ def rooster(dimx, dimy, orx, ory):
         j += 1
         i = 0
 
-def randomLijn(dimx, dimy, orx, ory, kleur): # moet hetzelfde zijn als het rooster
-    pen.up()
-    pen.goto(orx, ory)
-    pen.pensize(lijnDikte)
-    pen.color(kleur)
-    # Neem een random aantal keren de operatie (1,1), dat ligt tussen de 0 en m (of n, afhankelijk
-    # van welke het kleinste is). Bereken vervolgens de keren dat de andere operaties nodig zijn
-    # (m-k, n-k) om de rechterbovenhoek te berijken.
-    if dimx < dimy:
-        diagonaal = random.randrange(dimx + 1)
-        horizontaal = dimx - diagonaal
-        verticaal = dimy - diagonaal
-        xcoordinaat = 0
-        ycoordinaat = 0
-        while xcoordinaat != dimx and ycoordinaat != dimy:
-            beweging = random.choice(["diagonaal", "verticaal", "horizontaal"])
-            if beweging == "verticaal":
-                pen.down()
-                pen.left(90)
-                pen.forward(zijde)
-                pen.right(90)
-                pen.up()
-                ycoordinaat += 1
-            elif beweging == "horizontaal":
-                pen.down()
-                pen.forward(zijde)
-                pen.up()
-                xcoordinaat += 1
-            else:
-                pen.down()
-                pen.left(45)
-                pen.forward(math.sqrt(2 * (zijde ** 2)))
-                pen.right(45)
-                pen.up()
-                xcoordinaat += 1
-                ycoordinaat += 1
-        if xcoordinaat == dimx:
-            while ycoordinaat != dimy:
-                pen.down()
-                pen.left(90)
-                pen.forward(zijde)
-                pen.right(90)
-                pen.up()
-                ycoordinaat += 1
-        else:
-            while xcoordinaat != dimx:
-                pen.down()
-                pen.forward(zijde)
-                pen.up()
-                xcoordinaat += 1
-    else: # als n < m of n = m
-        diagonaal = random.randrange(dimy + 1) # aantal mogelijke diagonale verschuivingen
-        horizontaal = dimx - diagonaal # aantal mogelijke horizontale verschuivingen
-        verticaal = dimy - diagonaal # aantal mogelijke verticale verschuivingen
-        xcoordinaat = 0
-        ycoordinaat = 0
-        while xcoordinaat != dimx and ycoordinaat != dimy:
-            beweging = random.choice(["diagonaal", "verticaal", "horizontaal"])
-            if beweging == "verticaal":
-                pen.down()
-                pen.left(90)
-                pen.forward(zijde)
-                pen.right(90)
-                pen.up()
-                ycoordinaat += 1
-            elif beweging == "horizontaal":
-                pen.down()
-                pen.forward(zijde)
-                pen.up()
-                xcoordinaat += 1
-            else:
-                pen.down()
-                pen.left(45)
-                pen.forward(math.sqrt(2 * (zijde ** 2)))
-                pen.right(45)
-                pen.up()
-                xcoordinaat += 1
-                ycoordinaat += 1
-        if xcoordinaat == dimx:
-            while ycoordinaat != dimy:
-                pen.down()
-                pen.left(90)
-                pen.forward(zijde)
-                pen.right(90)
-                pen.up()
-                ycoordinaat += 1
-        else:
-            while xcoordinaat != dimx:
-                pen.down()
-                pen.forward(zijde)
-                pen.up()
-                xcoordinaat += 1
-    pen.color("black")
-    pen.pensize(penDikte)
-    pen.goto(500,500)
 
 def tekenLijn(stappen,orx,ory,kleur):
     pen.up()
@@ -191,7 +97,7 @@ def tekenDelannoyRoosters(m,n,orx,ory):# Teken alle roosters bij een Delannoy ge
     if m == 0 or n == 0:
         return
     #print(Delannoy(m,n))
-    aantalRoosters = Delannoy(m,n)
+    aantalRoosters = delannoyGetal(m,n)
     #print(aantalRoosters)
     dimensies = math.ceil(math.sqrt(aantalRoosters)) # maakt de dimensies tot een simpel vierkant ipv bovenstaande uitleg
     i = 0
@@ -249,7 +155,7 @@ def tekenDelannoyLijn(m,n,orx,ory, kleur):
     print(len(lijnen))
     #teken nu alle lijnen op de posities
     #print(Delannoy(m,n))
-    aantalLijnen = Delannoy(m,n)
+    aantalLijnen = delannoyGetal(m,n)
     #print(aantalRoosters)
     dimensies = math.ceil(math.sqrt(aantalLijnen)) # maakt de dimensies tot een simpel vierkant ipv bovenstaande uitleg
     i = 0
@@ -268,15 +174,51 @@ def tekenDelannoyLijn(m,n,orx,ory, kleur):
             i+=1
         j+=1
         i=0
+# betere versie van delannoy()
+def delannoyGetal(m,n): # bepaal het delannoygetal met de binomiaalformule
+    k = 0
+    delannoy = 0
+    while k <= min(m,n): # Gebruik een loop-functie als sommatieteken
+        delannoy = delannoy + binomiaal(m,k)*binomiaal(n,k)*(2**k) # pas de formule toe
+        k+=1
+    return delannoy
+
+# willekeurige stappen voor betere randomlijn functie
+def randomStappen(m,n):
+    mIndex = 0
+    nIndex = 0
+    stappen = []
+    while mIndex < m and nIndex < n:
+        # stap = randomkeuze 0 45 90 
+        # if = 0 --> mIndex +=1, ...
+        # stappen append stap
+        # gedaan? --> while nIndex < n append 90 while mIndex < m append 0
+        stap = random.choice([0,45,90])
+        stappen.append(stap)
+        if stap == 0:
+            mIndex += 1
+        if stap == 45:
+            mIndex += 1
+            nIndex += 1
+        if stap == 90:
+            nIndex += 1
+    while mIndex < m:
+        stappen.append(0)
+        mIndex += 1
+    while nIndex < n:
+        stappen.append(90)
+        nIndex += 1
+    return stappen
 
 
-
-#rooster(m,n,originx,originy)
+rooster(m,n,originx,originy)
+tekenLijn(randomStappen(m,n),originx,originy,"red")
 #randomLijn(m,n,originx,originy,"red")
 #print(Delannoy(4,4))
 #print(delers(15))
-tekenDelannoyRoosters(m,n,originx,originy)
-tekenDelannoyLijn(m,n,originx,originy,"red")
+#tekenDelannoyRoosters(m,n,originx,originy)
+#tekenDelannoyLijn(m,n,originx,originy,"red")
+#rooster(5,5,0,0)
+
 window.update()
 window.mainloop()
-   
